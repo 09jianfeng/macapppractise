@@ -20,6 +20,10 @@
     GLuint VAO,VBO,EBO;
     GLuint texture0;
     
+    GLuint aONPos;
+    GLuint aONTextCoord;
+    GLuint ONVAO,ONVBO,ONEBO;
+    
     unsigned int offscreenTextureId;
     unsigned int offscreenTextureIdLoc;
     unsigned int offscreenBufferId;
@@ -76,7 +80,7 @@
      NSString *fgString = [NSString stringWithContentsOfFile:filePathName encoding:NSUTF8StringEncoding error:nil];
      _program = [[GLProgram alloc] initWithVertexShaderString:vsString fragmentShaderString:fgString];
     [_program addAttribute:@"aPos"];
-    [_program addAttribute:@"aTextCoord"];
+    [_program addAttribute:@"aTexCoord"];
     [_program addAttribute:@"acolor"];
     
     if(![_program link]){
@@ -85,8 +89,8 @@
         NSAssert(NO, @"Falied to link TextureRGBFS shaders");
     }
      aPos = [_program attributeIndex:@"aPos"];
-     aTextCoord = [_program attributeIndex:@"aTextCoord"];
-     acolor = [_program attributeIndex:@"acolor"];
+     aTextCoord = [_program attributeIndex:@"aTexCoord"];
+     acolor = [_program attributeIndex:@"aColor"];
      
      
      filePathName = [[NSBundle mainBundle] pathForResource:@"screenShader" ofType:@"vs"];
@@ -95,12 +99,15 @@
      fgString = [NSString stringWithContentsOfFile:filePathName encoding:NSUTF8StringEncoding error:nil];
      _screenProgram = [[GLProgram alloc] initWithVertexShaderString:vsString fragmentShaderString:fgString];
      [_screenProgram addAttribute:@"aPos"];
-     [_screenProgram addAttribute:@"aTextCoord"];
+     [_screenProgram addAttribute:@"aTexCoord"];
      if(![_screenProgram link]){
          NSLog(@"_program link error %@  fragement log %@  vertext log %@", [_screenProgram programLog], [_screenProgram fragmentShaderLog], [_screenProgram vertexShaderLog]);
          _screenProgram = nil;
          NSAssert(NO, @"Falied to link TextureRGBFS shaders");
      }
+    aONPos = [_screenProgram attributeIndex:@"aPos"];
+    aONTextCoord = [_screenProgram attributeIndex:@"aTexCoord"];
+    NSLog(@"aa");
 }
 
 - (void)setupFramebuffer{
@@ -139,6 +146,7 @@
 }
 
 - (void)setUpGLBuffers{
+    // offsceeen
     {  //生成并且绑定顶点数据。  VAO、VOB、EBO。  这些顶点数据都会被VAO附带。要用的时候不需要在赋值顶点数据、纹理顶点数据。只需要绑定VAO。就是复带上了所需的顶点数据
         float vertices[] = {
             // positions          // colors           // texture coords
@@ -174,6 +182,44 @@
         // texture coord attribute
         glVertexAttribPointer(aTextCoord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
         glEnableVertexAttribArray(aTextCoord);
+        
+        glBindVertexArray(0);
+    }
+    
+    //on screen
+    {
+        //生成并且绑定顶点数据。  VAO、VOB、EBO。  这些顶点数据都会被VAO附带。要用的时候不需要在赋值顶点数据、纹理顶点数据。只需要绑定VAO。就是复带上了所需的顶点数据
+        float vertices[] = {
+            // positions          // colors           // texture coords
+            0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+            0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left
+        };
+        unsigned int indices[] = {
+            0, 1, 3, // first triangle
+            1, 2, 3  // second triangle
+        };
+        
+        glGenVertexArrays(1, &ONVAO);
+        glGenBuffers(1, &ONVBO);
+        glGenBuffers(1, &ONEBO);
+        glBindVertexArray(ONVAO);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, ONVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ONEBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+        
+        // position attribute
+        glVertexAttribPointer(aONPos, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(aONPos);
+        
+        // texture coord attribute
+        glVertexAttribPointer(aONTextCoord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glEnableVertexAttribArray(aONTextCoord);
+        glBindVertexArray(0);
     }
 }
 
@@ -220,7 +266,7 @@
     //bind 了framebuffer后要记得绑过一次texture0；要跟对应着对应的framebuffer
     glBindTexture ( GL_TEXTURE_2D, texture0);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    glFinish();
+    
     
     
     glBindFramebuffer ( GL_FRAMEBUFFER, 0 );
@@ -232,7 +278,7 @@
 
     // render container
     [_screenProgram use];
-    glBindVertexArray(VAO);
+    glBindVertexArray(ONVAO);
     glActiveTexture ( GL_TEXTURE0 );
     glBindTexture ( GL_TEXTURE_2D, offscreenTextureId );
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
