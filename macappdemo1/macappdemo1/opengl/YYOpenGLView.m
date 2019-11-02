@@ -79,18 +79,15 @@
      filePathName = [[NSBundle mainBundle] pathForResource:@"Shader" ofType:@"frag"];
      NSString *fgString = [NSString stringWithContentsOfFile:filePathName encoding:NSUTF8StringEncoding error:nil];
      _program = [[GLProgram alloc] initWithVertexShaderString:vsString fragmentShaderString:fgString];
-    [_program addAttribute:@"aPos"];
-    [_program addAttribute:@"aTexCoord"];
-    [_program addAttribute:@"acolor"];
     
     if(![_program link]){
         NSLog(@"_program link error %@  fragement log %@  vertext log %@", [_program programLog], [_program fragmentShaderLog], [_program vertexShaderLog]);
         _program = nil;
         NSAssert(NO, @"Falied to link TextureRGBFS shaders");
     }
-     aPos = [_program attributeIndex:@"aPos"];
-     aTextCoord = [_program attributeIndex:@"aTexCoord"];
-     acolor = [_program attributeIndex:@"aColor"];
+    aPos = 0;
+    aTextCoord = 2;
+    acolor = 1;
      
      
      filePathName = [[NSBundle mainBundle] pathForResource:@"screenShader" ofType:@"vs"];
@@ -98,15 +95,18 @@
      filePathName = [[NSBundle mainBundle] pathForResource:@"screenShader" ofType:@"frag"];
      fgString = [NSString stringWithContentsOfFile:filePathName encoding:NSUTF8StringEncoding error:nil];
      _screenProgram = [[GLProgram alloc] initWithVertexShaderString:vsString fragmentShaderString:fgString];
-     [_screenProgram addAttribute:@"aPos"];
-     [_screenProgram addAttribute:@"aTexCoord"];
+    //opengl 3.0 在GLSL3.0中，不需要attribute，直接在GLSL中指定location，这样可以直接赋值位置值。addAttribute、getattributeIndex的方式不能再用。
+//     [_screenProgram addAttribute:@"aPos"];
+//     [_screenProgram addAttribute:@"aTexCoord"];
      if(![_screenProgram link]){
          NSLog(@"_program link error %@  fragement log %@  vertext log %@", [_screenProgram programLog], [_screenProgram fragmentShaderLog], [_screenProgram vertexShaderLog]);
          _screenProgram = nil;
          NSAssert(NO, @"Falied to link TextureRGBFS shaders");
      }
-    aONPos = [_screenProgram attributeIndex:@"aPos"];
-    aONTextCoord = [_screenProgram attributeIndex:@"aTexCoord"];
+//    aONPos = [_screenProgram attributeIndex:@"aPos"];
+//    aONTextCoord = [_screenProgram attributeIndex:@"aTexCoord"];
+    aONPos = 0;
+    aONTextCoord = 1;
     NSLog(@"aa");
 }
 
