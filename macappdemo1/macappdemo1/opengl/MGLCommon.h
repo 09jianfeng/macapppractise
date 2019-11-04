@@ -148,3 +148,7 @@ typedef struct demoSourceRec
 demoSource* srcLoadSource(const char* filepathname);
 
 void srcDestroySource(demoSource* source);
+
+CVPixelBufferRef pixelBufferCreateFromCGImage(CGImageRef ciImage);
+CGImageRef convertNSImageToCGImageref(NSImage * image);
+

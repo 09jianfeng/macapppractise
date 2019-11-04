@@ -215,6 +215,8 @@
     [self render];
     [[self openGLContext] flushBuffer];
     CGLUnlockContext([[self openGLContext] CGLContextObj]);
+    
+    NSLog(@"pixelbuffer %@",_frameBuffer.pixelBuffer);
 }
 
 @end

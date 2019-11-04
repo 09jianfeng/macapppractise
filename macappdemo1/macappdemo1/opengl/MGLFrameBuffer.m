@@ -250,7 +250,21 @@
         
         return _renderTarget;
     } else {
-        return nil;
+        
+        NSUInteger totalBytesForImage = (int)_size.width * (int)_size.height * 4;
+        // It appears that the width of a texture must be padded out to be a multiple of 8 (32 bytes) if reading from it using a texture cache
+        GLubyte *rawImagePixels;
+        CGDataProviderRef dataProvider = NULL;
+        [self activateFramebuffer];
+        rawImagePixels = (GLubyte *)malloc(totalBytesForImage);
+        glReadPixels(0, 0, (int)_size.width, (int)_size.height, GL_BGRA, GL_UNSIGNED_BYTE, rawImagePixels);
+        dataProvider = CGDataProviderCreateWithData(NULL, rawImagePixels, totalBytesForImage, dataProviderReleaseCallback);
+        
+        __block CGImageRef cgImageFromBytes;
+        CGColorSpaceRef defaultRGBColorSpace = CGColorSpaceCreateDeviceRGB();
+        cgImageFromBytes = CGImageCreate((int)_size.width, (int)_size.height, 8, 32, 4 * (int)_size.width, defaultRGBColorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaLast, dataProvider, NULL, NO, kCGRenderingIntentDefault);
+        CVPixelBufferRef pixelBuf = pixelBufferCreateFromCGImage(cgImageFromBytes);
+        return pixelBuf;
     }
 }
 
@@ -278,6 +292,12 @@
         }
     }
 #endif
+}
+
+
+void dataProviderReleaseCallback (void *info, const void *data, size_t size)
+{
+    free((void *)data);
 }
 
 - (GLubyte *)byteBuffer {

@@ -70,16 +70,7 @@
 }
 
 + (BOOL)supportsFastTextureUpload {
-#if TARGET_IPHONE_SIMULATOR
     return NO;
-#else
-    
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wtautological-pointer-compare"
-    return (CVOpenGLTextureCacheCreate != NULL);
-#pragma clang diagnostic pop
-    
-#endif
 }
 
 @end
