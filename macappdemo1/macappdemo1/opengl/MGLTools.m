@@ -70,7 +70,7 @@
 }
 
 + (BOOL)supportsFastTextureUpload {
-    return NO;
+    return YES;
 }
 
 @end
