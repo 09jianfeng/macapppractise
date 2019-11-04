@@ -136,6 +136,7 @@
             NSOpenGLPFAOpenGLProfile,
             //set opengl vesion
             NSOpenGLProfileVersion3_2Core,
+            NSOpenGLPFAAccelerated,
             0
         };
         NSOpenGLPixelFormat *pf = [[NSOpenGLPixelFormat alloc] initWithAttributes:pixelFormatAttrs];
@@ -176,6 +177,11 @@
 //        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthBuffer);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, CVOpenGLTextureGetName(_renderTexture), 0);
     } else {
+        CFMutableDictionaryRef attrs = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+        CFDictionarySetValue(attrs, kCVPixelBufferIOSurfacePropertiesKey, (void*)[NSDictionary dictionary]);
+        CFDictionarySetValue(attrs, kCVPixelBufferOpenGLCompatibilityKey, (void*)[NSNumber numberWithBool:YES]);
+        CVPixelBufferCreate(kCFAllocatorDefault, (int)_size.width, (int)_size.height, kCVPixelFormatType_32BGRA, attrs, &_renderTarget);
+        
         [self generateTexture];
         glBindTexture(GL_TEXTURE_2D, _bindTexture);
         glTexImage2D(GL_TEXTURE_2D, 0, _textureOptions.internalFormat, (int)_size.width, (int)_size.height, 0, _textureOptions.format, _textureOptions.type, 0);
@@ -237,6 +243,8 @@
     }
 }
 
+
+//OpenGL 如果通过PBO的方式来上传下载数据，会
 - (CVPixelBufferRef)pixelBuffer {
     if ([MGLTools supportsFastTextureUpload]) {
         
@@ -251,6 +259,8 @@
         return _renderTarget;
     } else {
         
+        uint64_t begin = GetTickCount();
+        /*
         NSUInteger totalBytesForImage = (int)_size.width * (int)_size.height * 4;
         // It appears that the width of a texture must be padded out to be a multiple of 8 (32 bytes) if reading from it using a texture cache
         GLubyte *rawImagePixels;
@@ -263,8 +273,35 @@
         __block CGImageRef cgImageFromBytes;
         CGColorSpaceRef defaultRGBColorSpace = CGColorSpaceCreateDeviceRGB();
         cgImageFromBytes = CGImageCreate((int)_size.width, (int)_size.height, 8, 32, 4 * (int)_size.width, defaultRGBColorSpace, kCGBitmapByteOrderDefault | kCGImageAlphaLast, dataProvider, NULL, NO, kCGRenderingIntentDefault);
-        CVPixelBufferRef pixelBuf = pixelBufferCreateFromCGImage(cgImageFromBytes);
-        return pixelBuf;
+        _renderTarget = pixelBufferCreateFromCGImage(cgImageFromBytes);
+        */
+        
+        
+        NSUInteger totalBytesForImage = (int)_size.width * (int)_size.height * 4;
+        // It appears that the width of a texture must be padded out to be a multiple of 8 (32 bytes) if reading from it using a texture cache
+        GLubyte *rawImagePixels;
+        [self activateFramebuffer];
+        rawImagePixels = (GLubyte *)malloc(totalBytesForImage);
+        glReadPixels(0, 0, (int)_size.width, (int)_size.height, GL_BGRA, GL_UNSIGNED_BYTE, rawImagePixels);
+        
+        CVPixelBufferLockBaseAddress(_renderTarget, 0);
+        uint8_t * bgra = (uint8_t*)CVPixelBufferGetBaseAddress(_renderTarget);
+        int bgraStride = (int)CVPixelBufferGetBytesPerRow(_renderTarget);
+        if (bgraStride == _size.width * 4) {
+           memcpy(bgra, rawImagePixels, bgraStride*_size.height);
+        }else{
+            for (int i = 0; i < _size.height; i++) {
+                for (int j = 0; j < bgraStride; j++) {
+                    bgra[i * bgraStride + j] = rawImagePixels[i * bgraStride + j];
+                }
+            }
+        }
+        CVPixelBufferUnlockBaseAddress(_renderTarget, 0);
+         
+        
+        uint64_t end = GetTickCount();
+        NSLog(@"read pixel buffer cost:%llu",end - begin);
+        return _renderTarget;
     }
 }
 

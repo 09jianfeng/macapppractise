@@ -40,4 +40,6 @@
 + (NSString *)modelName;
 
 + (BOOL)isOrNewerThaniPhone5s;
+
+uint32_t GetTickCount();
 @end

@@ -7,6 +7,9 @@
 //
 
 #import "MGLTools.h"
+#include <time.h>
+#include <sys/time.h>
+#include <sys/sysctl.h>
 
 @implementation MGLTools
 
@@ -70,7 +73,14 @@
 }
 
 + (BOOL)supportsFastTextureUpload {
-    return YES;
+    return NO ;
 }
 
+
+uint32_t GetTickCount()
+{
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return (uint32_t) (((uint64_t)now.tv_sec * USEC_PER_SEC + now.tv_usec) / 1000);
+}
 @end
