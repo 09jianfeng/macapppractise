@@ -149,8 +149,8 @@
     glGenBuffers(1, &OnEBO);
     
     glBindVertexArray(OnVAO);
-    glBindBuffer(GL_VERTEX_ARRAY, OnVBO);
-    glBufferData(GL_VERTEX_ARRAY, sizeof(vertices1), vertices1, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, OnVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices1), vertices1, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, OnEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     
