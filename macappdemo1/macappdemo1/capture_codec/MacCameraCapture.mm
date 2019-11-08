@@ -1,5 +1,5 @@
 //
-//  MacCameraCaptureFilter.m
+//  MacCameraCapture.m
 //
 //  Created by JFChen on 2019/11/1.
 //  Copyright © 2019 JFChen. All rights reserved.
@@ -9,7 +9,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <sys/utsname.h>
 #import <AppKit/AppKit.h>
-#import "MacCameraCaptureFilter.h"
+#import "MacCameraCapture.h"
 #include <sys/sysctl.h>
 #include <assert.h>
 #include <CoreServices/CoreServices.h>
@@ -18,7 +18,7 @@
 #include <unistd.h>
 #import <OpenGL/gl3.h>
 
-@interface MacCameraCaptureFilter()<AVCaptureVideoDataOutputSampleBufferDelegate> {
+@interface MacCameraCapture()<AVCaptureVideoDataOutputSampleBufferDelegate> {
     BOOL                        _cameraJustChanged;
     int    _abandonFrame;
     AVCaptureSession *          _captureSession;
@@ -35,7 +35,6 @@
     NSString*                   _preset;
     OSType _pixelForamt;
     dispatch_queue_t            _captureQueue;
-    GetCMSampleBufferRef _block;
     CGPoint _exposPt;
     
     // device ative format, may be change by system.
@@ -59,7 +58,7 @@
 
 @end
 
-@implementation MacCameraCaptureFilter
+@implementation MacCameraCapture
 
 + (CMVideoDimensions)getDimensionsFromPreset:(NSString*)preset {
     CMVideoDimensions dimensions;
@@ -96,21 +95,15 @@
         _captureOrientation = AVCaptureVideoOrientationPortrait;
         _cameraPosition = AVCaptureDevicePositionFront;
         _frameRate = 24;
-        _preset = [MacCameraCaptureFilter maxPresetOfDeviceModel];
+        _preset = [MacCameraCapture maxPresetOfDeviceModel];
         _captureDeviceErrorRetryCount = 3;
         _videoConfig = [NSMutableDictionary new];
         _videoConfigLock = [[NSLock alloc] init];
         _lowLatency = NO;
         _pixelForamt = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-        //AVAuthorizationStatus authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
-        //if ( authStatus == AVAuthorizationStatusAuthorized ) {
-            _captureSession = [[AVCaptureSession alloc] init];
-            if (!_captureSession) {
-                //return nil;
-            }
-        //} else {
-            //return nil;
-        //}
+        _captureSession = [[AVCaptureSession alloc] init];
+        if (!_captureSession) {
+        }
     }
     return self;
 }
@@ -131,10 +124,6 @@
     }
 }
 
-- (void)setGetCMSampleBufferRefBlock:(GetCMSampleBufferRef) block {
-    _block = block;
-}
-
 - (void)doSetCaptureOrientation:(AVCaptureVideoOrientation)orientation {
     NSLog(@"videocapture rotateorientation:%td",orientation);
     [_captureSession beginConfiguration];
@@ -149,89 +138,15 @@
     [_captureSession commitConfiguration];
 }
 
-/*
-- (YYMediaSample*)makeCaptureMediaSample:(CMSampleBufferRef)sampleBuffer {
-    if (!_captureSession.isRunning) {
-        return nil;
-    }
-    
-    if (!sampleBuffer) {
-        return nil;
-    }
-    
-    AVCaptureDevicePosition camPos = [self cameraPosition];
-    if (AVCaptureDevicePositionUnspecified == camPos) {
-        // NSLog(@"[CameraCapturer captureOutput: Unspecified camera type!");
-        return nil;
-    }
-    
-    @synchronized (self) {
-        if (_cameraJustChanged) {
-            _abandonFrame = 3;
-            _cameraJustChanged = NO;
-            return nil;
-        }
-    }
-    if (_abandonFrame > 0) {
-        _abandonFrame--;
-        return nil;
-    }
-    YYMediaSample * sample = [[YYMediaSample alloc] initWithSampleBuffer:sampleBuffer];
-    sample.channelId            = 0; // 0 is camera(or front camera)
-    sample.cameraPosition       = camPos;
-    sample.captureOrientation   = _captureOrientation;
-    sample.videoFlag            = kMediaSample_None;
-    sample.bufferFlag           = (MediaSampleBufferFlag)(kMediaSampleBuffer_IOSurface|kMediaSampleBuffer_OpenGLESCompatible);
-    int64_t tickCount             = [TimerUtils getTickCount];
-    sample.pts                  = tickCount;
-    sample.dts                  = 0;
-    [_videoConfigLock lock];
-    sample.filterParams         = [[NSDictionary alloc] initWithDictionary:_videoConfig copyItems:YES];
-    [_videoConfigLock unlock];
-    sample.metaDatas            = _metaArray;
-    _metaArray                  = nil;
-    //给客户端的pts回调改为uint32_t
-    dispatch_async(dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0), ^{
-        [[NSNotificationCenter defaultCenter] postNotificationName:kVLNotificationCurrentPicPTS object:@{@"pts":@((uint32_t)tickCount)}];
-    });
-    return sample;
-}
- */
-
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
 didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {
-    
-    /*
-    YYMediaSample* sample = [self makeCaptureMediaSample:sampleBuffer];
-    if (sample) {
-        __strong typeof(_downstream) strongDownstream = _downstream;
-       [strongDownstream processMediaSample:sample from:self];
-        strongDownstream = nil;
-        if (_block != nil) {
-            _block(sampleBuffer);
-            _block = nil;
-        }
-    }
-     */
+    NSLog(@"%@",sampleBuffer);
+    [_delegate didOutputSampleBuffer:sampleBuffer];
 }
 
 - (BOOL)isCaptureParam:(NSString*)key {
-    /*
-    if ([key isEqualToString:kVLVideo_CameraPosition]) {
-        return YES;
-    }
-    if ([key isEqualToString:kVLVideo_CaptureOrientation]) {
-        return YES;
-    }
-    if ([key isEqualToString:kVLVideo_CapturePreset]) {
-        return YES;
-    }
-    if ([key isEqualToString:kVLVideo_CaptureFrameRate]) {
-        return YES;
-    }
-     */
     return NO;
 }
 
@@ -286,7 +201,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     if (!_device) {
         return;
     }
-    CMVideoDimensions presetDimensions = [MacCameraCaptureFilter getDimensionsFromPreset:preset];
+    CMVideoDimensions presetDimensions = [MacCameraCapture getDimensionsFromPreset:preset];
     int32_t presetWidth  = presetDimensions.width;
     int32_t presetHeight = presetDimensions.height;
     AVCaptureDevice *videoDevice = _device;
@@ -453,14 +368,14 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
         preset = settingPreset;
     }
     else if (preset == nil) {
-        preset = [MacCameraCaptureFilter maxPresetOfDeviceModel];
+        preset = [MacCameraCapture maxPresetOfDeviceModel];
     }
     number = [settings objectForKey:@"kVLVideo_CaptureFrameRate"];
     if (number) {
         frameRate = [number intValue];
     }
     
-    //    @synchronized (self) {
+    
     if ([_captureSession isRunning]) {
         [self doSetFrameRate:frameRate];
         if (cameraPosition != _cameraPosition) {

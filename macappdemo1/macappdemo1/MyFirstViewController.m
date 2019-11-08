@@ -9,14 +9,15 @@
 #import "MyFirstViewController.h"
 #import "YYOpenGLView.h"
 #import "MGLOpenGLView.h"
+#import "MacCameraCapture.h"
 
 @interface MyFirstViewController ()
 @property (weak) IBOutlet NSButton *buttonTest1;
-
 @end
 
 @implementation MyFirstViewController{
     MGLOpenGLView *_openGLView;
+    MacCameraCapture *_capture;
 }
 
 - (void)viewDidLoad {
@@ -27,6 +28,7 @@
     self.view.wantsLayer = YES;
     [_buttonTest1 setImage:[NSImage imageNamed:@"container.jpg"]];
     _buttonTest1.layer.backgroundColor = [NSColor whiteColor].CGColor;
+    
 }
 
 - (IBAction)tes1BTNPressed:(id)sender {
@@ -35,6 +37,10 @@
     _openGLView = [[MGLOpenGLView alloc] initWithFrame:CGRectMake(100, 100, 400, 400)];
     [self.view addSubview:_openGLView];
     [_openGLView setNeedsDisplay:YES];
+    
+//    _capture = [MacCameraCapture new];
+//    [_capture configure:@{}];
+//    [_capture start];
 }
 
 - (void)viewWillAppear{

@@ -122,6 +122,60 @@ void NV12_frame_rotate_90(CVPixelBufferRef source, CVPixelBufferRef target)
 }
 
 /*
+* UIImage to RGBA Pixelbuffer
+*/
+CVPixelBufferRef imageToRGBAPixelBuffer(NSImage *image){
+    // convert to CGImage & dump to bitmapData
+    
+    CGImageRef imageRef = convertNSImageToCGImageref(image);
+    int width  = (int)CGImageGetWidth(imageRef);
+    int height = (int)CGImageGetHeight(imageRef);
+    
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    NSUInteger bytesPerPixel = 4;
+    NSUInteger bytesPerRow = ((bytesPerPixel*width+255)/256)*256;
+    NSUInteger bitsPerComponent = 8;
+    GLubyte* bitmapData = (GLubyte *)malloc(bytesPerRow*height); // if 4 components per pixel (RGBA)
+    CGContextRef context = CGBitmapContextCreate(bitmapData, width, height,
+                                                 bitsPerComponent, bytesPerRow, colorSpace,
+                                                 kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(colorSpace);
+    
+    CGContextDrawImage(context, CGRectMake(0, 0, width, height), imageRef);
+    CGContextRelease(context);
+    
+    
+    
+    // 创建RGB pixelbuffer
+    CVPixelBufferRef rgbPixelBuffer;
+    CFMutableDictionaryRef attrs = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFDictionarySetValue(attrs, kCVPixelBufferIOSurfacePropertiesKey, (void*)[NSDictionary dictionary]);
+    CFDictionarySetValue(attrs, kCVPixelBufferOpenGLCompatibilityKey, (void*)[NSNumber numberWithBool:YES]);
+    
+    CVReturn err = CVPixelBufferCreate(kCFAllocatorDefault, (int)image.size.width, (int)image.size.height, kCVPixelFormatType_32BGRA, attrs, &rgbPixelBuffer);
+    if (err) {
+        return NULL;
+    }
+    CFRelease(attrs);
+    
+    CVPixelBufferLockBaseAddress(rgbPixelBuffer, 0);
+    uint8_t * bgra = (uint8_t*)CVPixelBufferGetBaseAddress(rgbPixelBuffer);
+    int bgraStride = (int)CVPixelBufferGetBytesPerRow(rgbPixelBuffer);
+    if (bgraStride == width * 4) {
+       memcpy(bgra, bitmapData, bgraStride * height);
+    }else{
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < bgraStride; j++) {
+                bgra[i * bgraStride + j] = bitmapData[i * bgraStride + j];
+            }
+        }
+    }
+    CVPixelBufferUnlockBaseAddress(rgbPixelBuffer, 0);
+    
+    return rgbPixelBuffer;
+}
+
+/*
  * UIImage to yuv420f nv12格式。
  */
 CVPixelBufferRef imageToYUVPixelBuffer(NSImage *image){

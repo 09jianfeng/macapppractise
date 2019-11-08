@@ -149,6 +149,7 @@ demoSource* srcLoadSource(const char* filepathname);
 
 void srcDestroySource(demoSource* source);
 
+CVPixelBufferRef imageToRGBAPixelBuffer(NSImage *image);
 CVPixelBufferRef pixelBufferCreateFromCGImage(CGImageRef ciImage);
 CGImageRef convertNSImageToCGImageref(NSImage * image);
 

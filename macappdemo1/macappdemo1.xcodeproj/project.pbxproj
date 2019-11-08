@@ -41,7 +41,7 @@
 		784F4C1D2371589B00930C43 /* toy_box_normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 784F4C092371589B00930C43 /* toy_box_normal.png */; };
 		784F4C1E2371589B00930C43 /* toy_box_disp.png in Resources */ = {isa = PBXBuildFile; fileRef = 784F4C0A2371589B00930C43 /* toy_box_disp.png */; };
 		784F4C1F2371589B00930C43 /* window.png in Resources */ = {isa = PBXBuildFile; fileRef = 784F4C0B2371589B00930C43 /* window.png */; };
-		784F4C252371A36500930C43 /* MacCameraCaptureFilter.mm in Sources */ = {isa = PBXBuildFile; fileRef = 784F4C242371A36500930C43 /* MacCameraCaptureFilter.mm */; };
+		784F4C252371A36500930C43 /* MacCameraCapture.mm in Sources */ = {isa = PBXBuildFile; fileRef = 784F4C242371A36500930C43 /* MacCameraCapture.mm */; };
 		78DC2AC1236BC03800013439 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 78DC2AC0236BC03800013439 /* AppDelegate.m */; };
 		78DC2AC3236BC03A00013439 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 78DC2AC2236BC03A00013439 /* Assets.xcassets */; };
 		78DC2AC6236BC03A00013439 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 78DC2AC4236BC03A00013439 /* MainMenu.xib */; };
@@ -91,8 +91,8 @@
 		784F4C092371589B00930C43 /* toy_box_normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = toy_box_normal.png; sourceTree = "<group>"; };
 		784F4C0A2371589B00930C43 /* toy_box_disp.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = toy_box_disp.png; sourceTree = "<group>"; };
 		784F4C0B2371589B00930C43 /* window.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = window.png; sourceTree = "<group>"; };
-		784F4C232371A36500930C43 /* MacCameraCaptureFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacCameraCaptureFilter.h; sourceTree = "<group>"; };
-		784F4C242371A36500930C43 /* MacCameraCaptureFilter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MacCameraCaptureFilter.mm; sourceTree = "<group>"; };
+		784F4C232371A36500930C43 /* MacCameraCapture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MacCameraCapture.h; sourceTree = "<group>"; };
+		784F4C242371A36500930C43 /* MacCameraCapture.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MacCameraCapture.mm; sourceTree = "<group>"; };
 		78DC2ABC236BC03800013439 /* macappdemo1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macappdemo1.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		78DC2ABF236BC03800013439 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		78DC2AC0236BC03800013439 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -184,8 +184,8 @@
 		784F4C222371A36500930C43 /* capture_codec */ = {
 			isa = PBXGroup;
 			children = (
-				784F4C232371A36500930C43 /* MacCameraCaptureFilter.h */,
-				784F4C242371A36500930C43 /* MacCameraCaptureFilter.mm */,
+				784F4C232371A36500930C43 /* MacCameraCapture.h */,
+				784F4C242371A36500930C43 /* MacCameraCapture.mm */,
 			);
 			path = capture_codec;
 			sourceTree = "<group>";
@@ -327,7 +327,7 @@
 				78DC2AC9236BC03A00013439 /* main.m in Sources */,
 				784F4B66236C16D600930C43 /* MGLProgram.m in Sources */,
 				784F4B79236D270900930C43 /* YYOpenGLView.m in Sources */,
-				784F4C252371A36500930C43 /* MacCameraCaptureFilter.mm in Sources */,
+				784F4C252371A36500930C43 /* MacCameraCapture.mm in Sources */,
 				784F4B86236FCBEC00930C43 /* MGLOpenGLView.m in Sources */,
 				784F4B65236C16D600930C43 /* MGLCommon.m in Sources */,
 				78DC2AC1236BC03800013439 /* AppDelegate.m in Sources */,

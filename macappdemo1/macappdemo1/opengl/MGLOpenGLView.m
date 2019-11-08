@@ -11,6 +11,16 @@
 #import "MGLProgram.h"
 #import "MGLTools.h"
 
+typedef struct GPUTextureOptions {
+    GLenum minFilter;
+    GLenum magFilter;
+    GLenum wrapS;
+    GLenum wrapT;
+    GLenum internalFormat;
+    GLenum format;
+    GLenum type;
+} GPUTextureOptions;
+
 @interface MGLOpenGLView()
 @property(nonatomic , strong) MGLFrameBuffer *frameBuffer;
 @property(nonatomic , strong) GLProgram *program;
@@ -25,7 +35,11 @@
     GLuint OnVAO,OnVBO,OnEBO;
     GLuint wmVAO,wmVBO,wmEBO;
     
-    GLuint texture0,texturewm;
+    GLuint texture0,texturewm,texturepixel;
+    
+    CVPixelBufferRef _pixelbuffer;
+    CVOpenGLTextureCacheRef _textureCache;
+    CVOpenGLTextureRef _renderTexture;
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect{
@@ -66,7 +80,12 @@
     
     [self buildPrograme];
     [self setupGLBufferObject];
+    
     [self loadTexture];
+    
+//    NSImage *image = [NSImage imageNamed:@"container.jpg"];
+//    _pixelbuffer = imageToRGBAPixelBuffer(image);
+//    [self loadPixelBufferTexture];
 }
 
 - (void)buildPrograme{
@@ -205,6 +224,7 @@
         NSImage *image = [NSImage imageNamed:@"container.jpg"];
         MImageData* imageData = mglImageDataFromUIImage(image, YES);
         
+        glActiveTexture(GL_TEXTURE0);
         glGenTextures(1, &texture0);
         glBindTexture(GL_TEXTURE_2D, texture0);
         // set the texture wrapping parameters
@@ -225,6 +245,7 @@
         NSImage *image = [NSImage imageNamed:@"window.png"];
         MImageData* imageData = mglImageDataFromUIImage(image, YES);
         
+        glActiveTexture(GL_TEXTURE0);
         glGenTextures(1, &texturewm);
         glBindTexture(GL_TEXTURE_2D, texturewm);
         // set the texture wrapping parameters
@@ -241,29 +262,63 @@
     }
 }
 
-- (void)render{
+- (void)loadPixelBufferTexture{
+    int width = (int)CVPixelBufferGetWidth(_pixelbuffer);
+    int heigh = (int)CVPixelBufferGetHeight(_pixelbuffer);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &texturepixel);
+    glBindTexture(GL_TEXTURE_2D, texturepixel);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);    // set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    
+    CVPixelBufferLockBaseAddress(_pixelbuffer, 0);
+    uint8_t *data = CVPixelBufferGetBaseAddress(_pixelbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, heigh, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    CVPixelBufferUnlockBaseAddress(_pixelbuffer, 0);
+}
+
+- (void)renderPixelBuffer{
+   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+   glViewport(0, 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
+   glClearColor(0.2f, 0.8f, 1.0f, 1.0f);
+   glClear(GL_COLOR_BUFFER_BIT);
+   [_screenProgram use];
+   glBindVertexArray(OnVAO);
+   glActiveTexture(GL_TEXTURE0);
+   glBindTexture(GL_TEXTURE_2D, texturepixel);
+   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+- (void)renderOffscreenTexture{
     
     [_frameBuffer activateFramebuffer];
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    
+
     glViewport(0, 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
     glClearColor(0.2f, 0.8f, 0.4f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     [_program use];
     glBindVertexArray(VAO);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture0);
+    glBindTexture(GL_TEXTURE_2D,texture0);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
-    
+
     [_screenProgram use];
     glBindVertexArray(wmVAO);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texturewm);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
-    
+
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
@@ -281,11 +336,21 @@
     // Drawing code here.
     CGLLockContext([[self openGLContext] CGLContextObj]);
     [[self openGLContext] makeCurrentContext];
-    [self render];
+//    [self renderPixelBuffer];
+    [self renderOffscreenTexture];
     [[self openGLContext] flushBuffer];
     CGLUnlockContext([[self openGLContext] CGLContextObj]);
     
-    NSLog(@"pixelbuffer %@",_frameBuffer.pixelBuffer);
+//    NSLog(@"pixelbuffer %@",_frameBuffer.pixelBuffer);
+}
+
+- (void)setPixelbuffer:(CVPixelBufferRef)pixelbuffer{
+    
+    if (_pixelbuffer) {
+        CVPixelBufferRelease(_pixelbuffer);
+    }
+    _pixelbuffer = CVPixelBufferRetain(pixelbuffer);
+    [self setNeedsDisplay:true];
 }
 
 @end
