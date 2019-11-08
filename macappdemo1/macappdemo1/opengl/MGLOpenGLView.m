@@ -40,6 +40,7 @@ typedef struct GPUTextureOptions {
     CVPixelBufferRef _pixelbuffer;
     CVOpenGLTextureCacheRef _textureCache;
     CVOpenGLTextureRef _renderTexture;
+    CVPixelBufferRef _renderTarget;
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect{
@@ -83,9 +84,9 @@ typedef struct GPUTextureOptions {
     
     [self loadTexture];
     
-//    NSImage *image = [NSImage imageNamed:@"container.jpg"];
-//    _pixelbuffer = imageToRGBAPixelBuffer(image);
-//    [self loadPixelBufferTexture];
+    NSImage *image = [NSImage imageNamed:@"container.jpg"];
+    _pixelbuffer = imageToRGBAPixelBuffer(image);
+    [self loadPixelBufferTexture];
 }
 
 - (void)buildPrograme{
@@ -285,15 +286,46 @@ typedef struct GPUTextureOptions {
 }
 
 - (void)renderPixelBuffer{
-   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-   glViewport(0, 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
-   glClearColor(0.2f, 0.8f, 1.0f, 1.0f);
-   glClear(GL_COLOR_BUFFER_BIT);
-   [_screenProgram use];
-   glBindVertexArray(OnVAO);
-   glActiveTexture(GL_TEXTURE0);
-   glBindTexture(GL_TEXTURE_2D, texturepixel);
-   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
+    glClearColor(0.2f, 0.8f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    [_screenProgram use];
+    glBindVertexArray(OnVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texturepixel);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    
+    
+    
+    CGSize _size = CGSizeMake(CGRectGetWidth(self.frame), CGRectGetHeight(self.frame));
+    
+    CFMutableDictionaryRef attrs = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFDictionarySetValue(attrs, kCVPixelBufferIOSurfacePropertiesKey, (void*)[NSDictionary dictionary]);
+    CFDictionarySetValue(attrs, kCVPixelBufferOpenGLCompatibilityKey, (void*)[NSNumber numberWithBool:YES]);
+    CVPixelBufferCreate(kCFAllocatorDefault, (int)_size.width, (int)_size.height, kCVPixelFormatType_32BGRA, attrs, &_renderTarget);
+    NSUInteger totalBytesForImage = (int)_size.width * (int)_size.height * 4;
+    // It appears that the width of a texture must be padded out to be a multiple of 8 (32 bytes) if reading from it using a texture cache
+    GLubyte *rawImagePixels;
+    rawImagePixels = (GLubyte *)malloc(totalBytesForImage);
+    glReadPixels(0, 0, (int)_size.width, (int)_size.height, GL_BGRA, GL_UNSIGNED_BYTE, rawImagePixels);
+    
+    CVPixelBufferLockBaseAddress(_renderTarget, 0);
+    uint8_t * bgra = (uint8_t*)CVPixelBufferGetBaseAddress(_renderTarget);
+    int bgraStride = (int)CVPixelBufferGetBytesPerRow(_renderTarget);
+    if (bgraStride == _size.width * 4) {
+       memcpy(bgra, rawImagePixels, bgraStride*_size.height);
+    }else{
+        for (int i = 0; i < _size.height; i++) {
+            for (int j = 0; j < bgraStride; j++) {
+                bgra[i * bgraStride + j] = rawImagePixels[i * bgraStride + j];
+            }
+        }
+    }
+    CVPixelBufferUnlockBaseAddress(_renderTarget, 0);
+    
+    NSLog(@"");
 }
 
 - (void)renderOffscreenTexture{
@@ -336,8 +368,10 @@ typedef struct GPUTextureOptions {
     // Drawing code here.
     CGLLockContext([[self openGLContext] CGLContextObj]);
     [[self openGLContext] makeCurrentContext];
+    
 //    [self renderPixelBuffer];
     [self renderOffscreenTexture];
+    
     [[self openGLContext] flushBuffer];
     CGLUnlockContext([[self openGLContext] CGLContextObj]);
     
